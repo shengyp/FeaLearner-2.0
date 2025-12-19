@@ -20,10 +20,9 @@ class PWLayer(nn.Module):
             module.weight.data.normal_(mean=0.0, std=0.02)
 
     def forward(self, x):
-        return self.lin(self.dropout(x) - self.bias) # 中心化（类似批归一化） 线性变换
+        return self.lin(self.dropout(x) - self.bias)  # 中心化（类似批归一化） 线性变换
         # #引入非线性
         # return F.relu(self.lin(self.dropout(x) - self.bias))
-    
 
 
 class SparseMoELayer(nn.Module):
@@ -43,20 +42,19 @@ class SparseMoELayer(nn.Module):
         # Expert modules
         self.experts = nn.ModuleList([
             PWLayer(input_dim, output_dim, dropout) for _ in range(num_experts)
-        ]) # 创建num_experts个专家
+        ])  # 创建num_experts个专家
 
         # Gating network parameters
         self.w_gate = nn.Parameter(torch.empty(input_dim, num_experts), requires_grad=True)
         self.w_noise = nn.Parameter(torch.empty(input_dim, num_experts), requires_grad=True)
 
         # Initialize weights
-        nn.init.xavier_normal_(self.w_gate) # 门控网络权重
-        nn.init.xavier_normal_(self.w_noise) # 噪声权重
+        nn.init.xavier_normal_(self.w_gate)  # 门控网络权重
+        nn.init.xavier_normal_(self.w_noise)  # 噪声权重
 
         # For load balancing loss computation
         self.register_buffer('expert_counts', torch.zeros(num_experts))
         self.register_buffer('total_counts', torch.tensor(0.0))
-
 
     def noisy_top_k_gating(self, x, train, noise_epsilon=1e-2):
         """
@@ -187,18 +185,18 @@ class TwoLayerMoE(nn.Module):
         Forward pass with residual connections
         Returns: output, total_load_balancing_loss
         """
-        identity = x #残差连接
+        identity = x  # 残差连接
 
         # Layer 1
         x, load_loss1 = self.layer1(x)
-        x = self.norm1(x) #层归一化
-        x = self.act(x) # ReLU激活
+        x = self.norm1(x)  # 层归一化
+        x = self.act(x)  # ReLU激活
 
         # Layer 2
         x, load_loss2 = self.layer2(x)
-        x = self.norm2(x) # 层归一化
+        x = self.norm2(x)  # 层归一化
 
-         # 残差连接
+        # 残差连接
         if self.use_residual:
             x = x + identity
         elif self.residual_proj is not None:
@@ -209,7 +207,8 @@ class TwoLayerMoE(nn.Module):
 
         return x, total_load_loss
 
-#三层设计
+
+# 三层设计
 class ThreeLayerMoE(nn.Module):
     """
     Three-layer Sparse MoE with load balancing and residual connections
@@ -339,3 +338,24 @@ class MoELayer(nn.Module):
         expert_stack = torch.cat(expert_outs, dim=2)
         weighted = torch.bmm(expert_stack, gate_scores.unsqueeze(2)).squeeze(2)
         return weighted
+
+#一致性设计
+class UCR(nn.Module):
+    def __init__(self, temp=0.1, dropout_prob=0.1) -> None:
+        super().__init__()
+        self.temp = temp
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, inputs):
+        # 构造正样本：对同一输入应用随机 Dropout 扰动
+        inputs_enhanced = self.dropout(inputs)
+
+        # 计算余弦相似度矩阵 (Batch_size, Batch_size)
+        similarity = F.cosine_similarity(inputs.unsqueeze(1), inputs_enhanced.unsqueeze(0), dim=-1)
+        sim_tau = similarity / self.temp
+
+        # 对角线元素为正样本对，其余为负样本
+        # InfoNCE Loss 实现
+        logits = sim_tau
+        labels = torch.arange(inputs.size(0)).to(inputs.device)
+        return F.cross_entropy(logits, labels)
