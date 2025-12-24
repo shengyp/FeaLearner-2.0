@@ -308,7 +308,7 @@ class MyLSTMATT(nn.Module):
         # BiLSTM用于序列建模，传入隐藏层大小64
         self.historic_model = BiLSTM(self.embedding_dim, self.hidden_dim, lstm_layer, dropout)
 
-        # MoE模块仅处理四类特征，使用与v4.py一致的参数 三层moe且没有CUR Accuracy: 0.5400 test GP: 0.8181818181818182 GR: 0.6136363636363636 FS: 0.7012987012987013
+        # MoE模块仅处理四类特征，使用与v4.py一致的参数 三层moe且没有UCR Accuracy: 0.5400 test GP: 0.8181818181818182 GR: 0.6136363636363636 FS: 0.7012987012987013
         #         self.moe = BS.ThreeLayerMoE(
         #             input_dim=engine_dim,  # 输入维度是四类特征的总维度100
         #             mid_dim1=128,  # 第一层中间维度
@@ -324,7 +324,7 @@ class MyLSTMATT(nn.Module):
         #             noise=True  # 训练时添加噪声
         #         )
 
-        # 使用两层moe，没有CUR 指标：Accuracy: 0.5400 test GP: 0.75 GR: 0.6585365853658537 FS: 0.7012987012987012
+        # 使用两层moe，没有UCR 指标：Accuracy: 0.5400 test GP: 0.75 GR: 0.6585365853658537 FS: 0.7012987012987012
         self.moe = BS.TwoLayerMoE(
             input_dim=self.engine_dim,  # 仅使用特征维度作为输入
             mid_dim=128,
