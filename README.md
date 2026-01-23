@@ -4,7 +4,9 @@
 
 ---
 
-## 项目结构（文件夹/脚本说明）
+## 项目目录树
+
+```text
 
 ├── data_analy/ # 特征存放目录
 │ ├── feature_reddit_500.csv # Reddit 数据集提取的手工特征文件
@@ -22,6 +24,7 @@
 ├── run_experiments.sh # 自动化脚本：用于超参数搜索与批量实验
 ├── ablation_results.csv # 实验产出：消融实验的结果记录表
 └── bad_cases.csv # 训练产出：模型预测错误的样本分析表
+```
 
 ## 快速开始（复现/测试）
 
@@ -33,12 +36,14 @@ python auto_select/reddit.py
 
 ### sigir 数据集复现示例
 
+```bash
 python reddit.py \
  --max_len 300 \
  --classnum 2 \
  --use_pretrain True \
  --data_embeddings "../data/sigir_bert_embeddings.pkl" \
  --data_features "../data_analy/feature_sigir.csv" 2>&1
+```
 
 实验结果：
 Accuracy: 0.9489
@@ -46,6 +51,7 @@ test GP: 0.9766081871345029 GR: 0.9709302325581395 FS: 0.9737609329446064 OE: 0.
 
 ### bigdata 数据集复现示例
 
+```bash
 python reddit.py \
  --cv_heads 8 \
  --cv_d_model 256 \
@@ -58,6 +64,7 @@ python reddit.py \
  --use_pretrain True \
  --data_embeddings "../data/bigdata_bert_embeddings.pkl" \
  --data_features "../data_analy/feature_bigdata.csv" 2>&1
+```
 
 实验结果：
 最佳结果：Accuracy: 0.5366  
