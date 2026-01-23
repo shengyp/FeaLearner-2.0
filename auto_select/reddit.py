@@ -57,7 +57,7 @@ def parse_args(args=None):
     parser.add_argument("--epochs", default=50, type=int)
     parser.add_argument("--seed", default=24, type=int)
     parser.add_argument("--classnum", default=5, type=int)
-    parser.add_argument("--use_pretrain", default=True, type=bool)
+    parser.add_argument("--use_pretrain", default=False, type=bool)
     parser.add_argument("--patience", default=10, type=int, help="Early stopping patience")
     # 数据集路径参数
     parser.add_argument("--data_embeddings", type=str, default="../data/bert_embeddings.pkl",
@@ -723,4 +723,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
