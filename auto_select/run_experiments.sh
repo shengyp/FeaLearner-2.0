@@ -9,19 +9,19 @@ CSV_STAGE2="results_stage2_dynamics.csv"
 DEFAULT_EPOCHS=50
 DEFAULT_SEED=24
 
-# Stage 1 使用固定的 Patience
+# 使用固定的 Patience
 STAGE1_PATIENCE=10
 
-# ================= 辅助函数 (已修改) =================
+# ================= 辅助函数 =================
 extract_metrics() {
     local output="$1"
     
-    # 【修改点 1】提取 Accuracy
+    # 提取 Accuracy
     # grep 会匹配到所有的 "Epoch X Validation Accuracy: ..." 和最后的 "Accuracy: ..."
     # 使用 'tail -n 1' 强制只取最后一行（即最终测试集结果）
     local acc=$(echo "$output" | grep "Accuracy:" | tail -n 1 | sed -n 's/.*Accuracy: \([0-9.]*\).*/\1/p')
     
-    # 【修改点 2】提取 GP, GR, FS, OE
+    # 提取 GP, GR, FS, OE
     # 同样加上 'tail -n 1' 以防万一，确保只取最后一次输出
     local gp=$(echo "$output" | grep "test GP" | tail -n 1 | sed -n 's/.*GP: \([0-9.]*\).*/\1/p')
     local gr=$(echo "$output" | grep "test GP" | tail -n 1 | sed -n 's/.*GR: \([0-9.]*\).*/\1/p')
@@ -107,7 +107,7 @@ done
 # ============================================================
 # 阶段二: 训练参数搜索 (Training Dynamics Search)
 # ============================================================
-# 【重要】请根据 Stage 1 的结果，在这里手动修改最佳结构参数
+# 根据 Stage 1 的结果，手动修改最佳结构参数
 BEST_HEAD=4
 BEST_DIM=128
 # BEST_HEAD=8 #bigdata
