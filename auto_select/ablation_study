@@ -17,7 +17,7 @@ from tools import utils
 import twomoe as BS
 
 # 直接从主程序导入模型组件，确保 Exp-0 完全一致
-from dual_bigdata import (
+from reddit import (
     MyLSTMATT, 
     BiLSTM, 
     SelfAttentionLayer, 
