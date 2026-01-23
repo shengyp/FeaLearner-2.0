@@ -1,4 +1,4 @@
-dual_bigdata.py 主训练代码
+reddit.py 主训练代码
 run_experiments.sh 超参数调试的代码  适配reddit bigdata (帖子序列：五分类与四分类) 
 
 最佳指标记录：
@@ -7,7 +7,7 @@ reddit : bert_embeddings.pkl
 bigdata : bigdata_bert_embeddings.pkl  bigdata_bert.py训练得到bigdata的预训练结果  
 
 加载最佳的预训练模型进行复现（测试） ：
-python dual_bigdata.py \
+python reddit.py \
                 --cv_heads 8 \
                 --cv_d_model 256 \
                 --lr 1e-4 \
@@ -25,10 +25,10 @@ python dual_bigdata.py \
 
 sigir 提取 ：bert.py 得到sigir_bert_embeddings.pkl 
 
-Accuracy: 0.9448
- test GP: 0.9708090075062552 GR: 0.9724310776942355 FS: 0.9716193656093488 OE: 0.0
+Accuracy:  0.9489
+ test GP: 0.9766081871345029 GR: 0.9709302325581395 FS: 0.9737609329446064 OE: 0.0
 
-(base) ➜ auto_select python dual_bigdata.py \
+(base) ➜ auto_select python reddit.py \
                 --max_len 300 \
                 --classnum 2 \
                 --use_pretrain True \
@@ -50,9 +50,10 @@ Recall: 0.8499
 ================
 
 reddit:  
-2,128,1e-4,16,200,10,0.6400,0.7804878048780488,0.7804878048780488,0.7804878048780488,0.1  
+Heads,Dim,LR,BatchSize,MaxLen,Patience,Accuracy,GP,GR,FS,OE
+4,128,1e-4,16,200,10,0.6400,0.7804878048780488,0.7804878048780488,0.7804878048780488,0.1
 
 bigdata:  
 
 
-消融实验 test.py
+消融实验 ablation_study.py
