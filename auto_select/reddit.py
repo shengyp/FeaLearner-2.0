@@ -52,7 +52,7 @@ def parse_args(args=None):
     parser.add_argument("--hidden_size", type=int, default=128)
     # Cross-Variable Self-Attention 超参（变量路）
     parser.add_argument("--cv_d_model", type=int, default=128)
-    parser.add_argument("--cv_heads", type=int, default=2)
+    parser.add_argument("--cv_heads", type=int, default=4)
     parser.add_argument("--weight_decay", default=1e-5, type=float)
     parser.add_argument("--epochs", default=50, type=int)
     parser.add_argument("--seed", default=24, type=int)
@@ -286,7 +286,7 @@ class BiLSTM(nn.Module):
         B, L_real, D = inputs.shape
         device = inputs.device
 
-        # ===== ① pad / truncate 到固定长度 =====
+        # ===== pad / truncate 到固定长度 =====
         if L_real < self.max_len:
             pad_len = self.max_len - L_real
             pad_tensor = torch.zeros(B, pad_len, D, device=device, dtype=inputs.dtype)
@@ -294,7 +294,7 @@ class BiLSTM(nn.Module):
         else:
             inputs = inputs[:, :self.max_len, :]
 
-        # ===== ② 构造 padding mask（关键：device 对齐）=====
+        # ===== 构造 padding mask =====
         padding_mask = (torch.arange(self.max_len, device=device).unsqueeze(0) 
                         >= x_len.unsqueeze(1).to(device))
 
@@ -642,7 +642,6 @@ def train(args):
             if early_stop_counter >= patience:
                 break
 
-    # 加载磁盘上的模型进行测试（始终使用 my_best_model.pth）
     model.load_state_dict(torch.load('./my_reddit_model.pth'))
 
     model.eval()
