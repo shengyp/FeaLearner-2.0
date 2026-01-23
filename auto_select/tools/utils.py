@@ -51,7 +51,10 @@ def true_metric_loss(true, no_of_classes, scale=1):
 
     true = true.view(batch_size,1) # 将真实标签向量转换为(batch_size, 1)的形状。
     # 将真实标签向量转换为LongTensor类型，并在列方向上重复no_of_classes次，形成一个矩阵，然后转换为浮点数。这个矩阵的每一行都是相同的真实标签。
-    true_labels = torch.cuda.LongTensor(true).repeat(1, no_of_classes).float()
+    # true_labels = torch.cuda.LongTensor(true).repeat(1, no_of_classes).float()
+    true_labels = true.clone().detach().to(device='cuda', dtype=torch.long) \
+                    .repeat(1, no_of_classes) \
+                    .float()
     # class_labels = torch.arange(no_of_classes).float().cuda()：生成一个从0到no_of_classes-1的连续整数向量，然后转换为浮点数并移动到CUDA设备上。
     class_labels = torch.arange(no_of_classes).float().cuda()
     # 计算class_labels向量和true_labels矩阵之间的绝对差值，然后乘以缩放因子scale
@@ -134,8 +137,6 @@ def splits(df, dist_values):
     
     df = df.reset_index(drop=True)
     return df, df_test
-
-
 
 class FocalLoss(nn.Module):
     def __init__(self, weight=None, gamma=2., reduction='mean'):
