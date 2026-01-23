@@ -79,7 +79,7 @@ for head in "${HEADS_LIST[@]}"; do
             echo "========================================"
             
             # 使用 tee 同时显示输出和捕获到变量
-            OUTPUT=$(python dual_v3.py \
+            OUTPUT=$(python reddit.py \
                 --cv_heads $head \
                 --cv_d_model $dim \
                 --lr $FIXED_LR \
@@ -136,7 +136,7 @@ for lr in "${LR_LIST[@]}"; do
                 echo "========================================"
                 
                 # 使用 tee 同时显示输出和捕获到变量
-                OUTPUT=$(python dual_v3.py \
+                OUTPUT=$(python reddit.py \
                     --cv_heads $BEST_HEAD \
                     --cv_d_model $BEST_DIM \
                     --lr $lr \
