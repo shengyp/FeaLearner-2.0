@@ -16,14 +16,15 @@
 │ ├── bert_embeddings.pkl                               # Reddit 数据集的 BERT 嵌入
 │ ├── sigir_bert_embeddings.pkl                         # sigir 数据集的 BERT 嵌入
 │ └── bigdata_bert_embeddings                           # bigdata 数据集的 BERT 嵌入
-├── tools/                                              # 工具函数库
-│ └── utils.py                                          # 包含评价指标计算 (gr_metrics) 等辅助工具
-├── twomoe.py                                           # 核心模型组件：双层稀疏混合专家网络
-├── reddit.py                                           # 主训练脚本：适配 Reddit、sigir、BigData 数据集
-├── ablation_study.py                                   # 消融实验脚本：验证各模块有效性
-├── run_experiments.sh                                  # 自动化脚本：用于超参数搜索与批量实验
-├── ablation_results.csv                                # 实验产出：消融实验的结果记录表
-└── bad_cases.csv                                       # 训练产出：模型预测错误的样本分析表
+├── auto_select/ 
+  └── tools/                                              # 工具函数库
+    └── utils.py                                          # 包含评价指标计算 (gr_metrics) 等辅助工具
+  ├── twomoe.py                                           # 核心模型组件：双层稀疏混合专家网络
+  ├── reddit.py                                           # 主训练脚本：适配 Reddit、sigir、BigData 数据集
+  ├── ablation_study.py                                   # 消融实验脚本：验证各模块有效性
+  ├── run_experiments.sh                                  # 自动化脚本：用于超参数搜索与批量实验
+  ├── ablation_results.csv                                # 实验产出：消融实验的结果记录表
+  └── bad_cases.csv                                       # 训练产出：模型预测错误的样本分析表
 ```
 
 ## 快速开始（复现/测试）
