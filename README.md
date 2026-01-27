@@ -115,5 +115,3 @@ weibo中文数据集：
 | Exp-8_no_Feat    | w/o Handcrafted Features |     0.42 | 0.5915 | 0.6176 | 0.5676 |
 | Exp-9_CE_Loss    |         Focal -> CE Loss |     0.46 | 0.6301 | 0.7931 | 0.5227 |
 
-<img width="1371" height="869" alt="image" src="https://github.com/user-attachments/assets/868cabfd-7c9c-4373-81f4-8da141dadc60" />
-
