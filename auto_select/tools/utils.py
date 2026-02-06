@@ -3,22 +3,50 @@ import numpy as np
 import pandas as pd
 import datetime
 import os
+from pathlib import Path
 from sklearn import metrics
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tqdm,time
 
-PATH = os.path.dirname(os.path.abspath(__file__))
+_TOOLS_DIR = Path(__file__).resolve().parent          # .../auto_select/tools
+_AUTO_SELECT_DIR = _TOOLS_DIR.parent                  # .../auto_select
+_REPO_ROOT = _AUTO_SELECT_DIR.parent                  # 仓库根目录
+
+PATH = str(_TOOLS_DIR)  # 保持兼容：部分旧代码可能依赖 PATH 为字符串
+
+def _first_existing(candidates):
+    for p in candidates:
+        if p.exists():
+            return p
+    attempted = "\n".join(f"- {c}" for c in candidates)
+    raise FileNotFoundError(
+        "未找到所需数据文件。已尝试以下路径：\n" + attempted +
+        "\n如果你调整过目录结构，请把文件放到上述任一路径，或在调用方传入正确路径。"
+    )
 
 
 # 得到data文件夹的路径
 def get_data_path():
-    return os.path.join(PATH, '../../data/reddit_500.csv')
+    candidates = [
+        _REPO_ROOT / "data" / "reddit_500.csv",
+        _REPO_ROOT / "data_analy" / "reddit_500.csv",
+        # 兼容旧相对路径写法（以 tools 目录为基准）
+        _TOOLS_DIR / ".." / ".." / "data" / "reddit_500.csv",
+    ]
+    return str(_first_existing([c.resolve() for c in candidates]))
 
 
 def get_s_d():
-    return os.path.join(PATH, '../../data/Reddit_Suicide_Dictionary.csv')
+    candidates = [
+        _REPO_ROOT / "data" / "Reddit_Suicide_Dictionary.csv",
+        _REPO_ROOT / "data_analy" / "Reddit_Suicide_Dictionary.csv",
+        _REPO_ROOT / "data_analy" / "tools_dataset" / "Reddit_Suicide_Dictionary.csv",
+        # 兼容旧相对路径写法（以 tools 目录为基准）
+        _TOOLS_DIR / ".." / ".." / "data" / "Reddit_Suicide_Dictionary.csv",
+    ]
+    return str(_first_existing([c.resolve() for c in candidates]))
 
 # 读取数据
 def load_df(dataset_name):
@@ -137,6 +165,29 @@ def splits(df, dist_values):
     
     df = df.reset_index(drop=True)
     return df, df_test
+
+
+def binary_metrics(op, t):
+    """
+    针对二分类任务（如 Weibo, SuicidEmoji）的评价指标函数。
+    计算标准 Accuracy, Precision, Recall 和 F1-score。
+    """
+    op = np.array(op)
+    t = np.array(t)
+
+    # 1. 计算 Accuracy (与 gr_metrics 中的 TP/(TP+FN+FP) 逻辑等价)
+    acc = metrics.accuracy_score(t, op)
+
+    # 2. 计算标准的 Precision, Recall, F1-score (针对正类，即标签 1)
+    # 使用 zero_division=0 处理分母为 0 的情况
+    precision = metrics.precision_score(t, op, average='binary', zero_division=0)
+    recall = metrics.recall_score(t, op, average='binary', zero_division=0)
+    f1 = metrics.f1_score(t, op, average='binary', zero_division=0)
+
+    # 返回四元组以保持与 gr_metrics 的返回结构一致：
+    # (Accuracy, Precision, Recall, F1)
+    return acc, precision, recall, f1
+
 
 class FocalLoss(nn.Module):
     def __init__(self, weight=None, gamma=2., reduction='mean'):
