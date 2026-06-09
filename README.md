@@ -1,116 +1,272 @@
-# FeaLearner-2.0：基于用户帖子序列的自杀风险等级预测
+# FeaLearner 2.0
 
-本仓库实现了一个**帖子级别**的风险等级预测模型：输入为用户的**帖子序列（BERT embedding）** + **手工特征**，通过“用户的历史后上下文建模 + 多视点自适应特征选择网络（MoE）”融合后做分类。
+This repository implements FeaLearner 2.0 for suicide risk detection from user-level social media posts. The model uses two inputs:
 
----
+- user post sequences represented by BERT embeddings;
+- explicit textual features, including POS, TF-IDF, emotion lexicon, and suicide lexicon features.
 
-## 项目目录树
+The current reproduction code is organized as follows:
+
+- `auto_select/reddit.py`: main training and reproduction script for Reddit, SIGIR, and BigData.
+- `auto_select/weibo_train.py`: main training and reproduction script for Weibo.
+- `auto_select/model/`: saved checkpoints for reproduction.
+- `auto_select/reddit_ablation.py`: ablation study on Reddit.
+- `auto_select/weibo_ablation.py`: ablation study on Weibo.
+
+## Model Architecture
+
+The overall architecture of FeaLearner 2.0 is shown in the model diagram below.
+![FeaLearner 2.0 model architecture](model.jpg)
+
+## Directory Structure
 
 ```text
-
-├── data_analy/                                         # 特征存放目录
-│ ├── feature_reddit_500.csv                            # Reddit 数据集提取的手工特征文件
-│ ├── feature_sigir.csv                                 # sigir 数据集提取的手工特征文件
-│ └── feature_bigdata.csv                               # bigdata提取的手工特征文件
-├── data/                                               # 数据存放目录
-│ ├── bert_embeddings.pkl                               # Reddit 数据集的 BERT 嵌入
-│ ├── sigir_bert_embeddings.pkl                         # sigir 数据集的 BERT 嵌入
-│ └── bigdata_bert_embeddings                           # bigdata 数据集的 BERT 嵌入
-├── auto_select/ 
-  └── tools/                                              # 工具函数库
-    └── utils.py                                          # 包含评价指标计算 (gr_metrics) 等辅助工具
-  ├── twomoe.py                                           # 核心模型组件：双层稀疏混合专家网络
-  ├── reddit.py                                           # 主训练脚本：适配 Reddit、sigir、BigData 数据集
-  ├── ablation_study.py                                   # 消融实验脚本：验证各模块有效性
-  ├── run_experiments.sh                                  # 自动化脚本：用于超参数搜索与批量实验
-  ├── ablation_results.csv                                # 实验产出：消融实验的结果记录表
-  └── bad_cases.csv                                       # 训练产出：模型预测错误的样本分析表
+.
++-- data/
+|   +-- bert_embeddings.pkl                 # Reddit BERT embeddings
+|   +-- sigir_bert_embeddings.pkl           # SIGIR BERT embeddings
+|   +-- bigdata_bert_embeddings.pkl         # BigData BERT embeddings
+|   +-- user_post_embeddings_bert_wwm.pkl   # Weibo BERT embeddings
++-- data_analy/
+|   +-- extract_rbs_features.py             # Feature extraction for Reddit/SIGIR/BigData
+|   +-- extract_weibo_features.py           # Feature extraction for Weibo
+|   +-- feature_reddit_500.csv              # Reddit explicit features
+|   +-- feature_sigir.csv                   # SIGIR explicit features
+|   +-- feature_bigdata.csv                 # BigData explicit features
+|   +-- feature_weibo.csv                   # Weibo explicit features
++-- auto_select/
+|   +-- reddit.py                           # Main model for Reddit/SIGIR/BigData
+|   +-- weibo_train.py                      # Main model for Weibo
+|   +-- reddit_ablation.py                  # Reddit ablation study
+|   +-- weibo_ablation.py                   # Weibo ablation study
+|   +-- run_experiments.sh                  # Hyperparameter search for Reddit/SIGIR/BigData
+|   +-- weibo_tune.sh                       # Hyperparameter search for Weibo
+|   +-- twomoe.py                           # Two-layer MoE module
+|   +-- tools/utils.py                      # Metrics and helper functions
+|   +-- model/                              # Saved model checkpoints
+|   +-- result/                             # Recorded search and reproduction results
 ```
 
-## 快速开始（复现/测试）
+## Reproduction Pipeline
 
-### reddit 数据集复现示例
+Run the following commands from the project root unless otherwise specified.
+
+### 1. Extract Explicit Textual Features
+
+For Reddit, SIGIR, and BigData:
 
 ```bash
-python auto_select/reddit.py
+cd data_analy
+
+# Reddit
+python extract_rbs_features.py --dataset reddit
+
+# SIGIR
+python extract_rbs_features.py --dataset sigir
+
+# BigData
+python extract_rbs_features.py --dataset bigdata
 ```
 
-### sigir 数据集复现示例
+For Weibo:
+
+```bash
+cd data_analy
+python extract_weibo_features.py \
+  --csv_path ../raw_data/weibo/weibo_data.csv \
+  --output ../data_analy/feature_weibo.csv
+```
+
+The expected feature files are:
+
+```text
+data_analy/feature_reddit_500.csv
+data_analy/feature_sigir.csv
+data_analy/feature_bigdata.csv
+data_analy/feature_weibo.csv
+```
+
+### 2. Generate BERT Embeddings
+
+The training scripts require precomputed BERT embedding files in `.pkl` format. Each item should contain:
+
+```python
+{
+    "label": label_id,
+    "embeddings": post_embedding_sequence
+}
+```
+
+The expected files are:
+
+```text
+data/bert_embeddings.pkl
+data/sigir_bert_embeddings.pkl
+data/bigdata_bert_embeddings.pkl
+data/user_post_embeddings_bert_wwm.pkl
+```
+
+For Weibo, the embedding file is generated using a Chinese BERT/BERT-wwm encoder. For Reddit, SIGIR, and BigData, the corresponding BERT embedding files are used directly by `reddit.py`.
+
+### 3. Train and Reproduce Main Results
+
+Enter `auto_select/` before running the model scripts, because the saved checkpoints are written to `auto_select/model/`.
+
+```bash
+cd auto_select
+```
+
+#### Reddit
 
 ```bash
 python reddit.py \
- --max_len 300 \
- --classnum 2 \
- --use_pretrain True \
- --data_embeddings "../data/sigir_bert_embeddings.pkl" \
- --data_features "../data_analy/feature_sigir.csv" 2>&1
+  --cv_heads 4 \
+  --cv_d_model 128 \
+  --lr 1e-4 \
+  --batch_size 16 \
+  --max_len 200 \
+  --hidden_size 128 \
+  --epochs 50 \
+  --patience 10 \
+  --classnum 5 \
+  --data_embeddings ../data/bert_embeddings.pkl \
+  --data_features ../data_analy/feature_reddit_500.csv \
+  --save_path ./model/my_reddit_model.pth
 ```
 
-实验结果：
-Accuracy: 0.9489
-test GP: 0.9766081871345029 GR: 0.9709302325581395 FS: 0.9737609329446064 OE: 0.0
-
-### bigdata 数据集复现示例
+#### SIGIR
 
 ```bash
 python reddit.py \
- --cv_heads 8 \
- --cv_d_model 256 \
- --lr 1e-4 \
- --batch_size 4 \
- --max_len 5 \
---epochs 50 \
- --patience 10 \
- --classnum 4 \
- --use_pretrain True \
- --data_embeddings "../data/bigdata_bert_embeddings.pkl" \
- --data_features "../data_analy/feature_bigdata.csv" 2>&1
+  --cv_heads 8 \
+  --cv_d_model 128 \
+  --lr 1e-4 \
+  --batch_size 16 \
+  --max_len 300 \
+  --hidden_size 128 \
+  --epochs 50 \
+  --patience 10 \
+  --classnum 2 \
+  --data_embeddings ../data/sigir_bert_embeddings.pkl \
+  --data_features ../data_analy/feature_sigir.csv \
+  --save_path ./model/my_sigir_model.pth
 ```
 
-实验结果：
-最佳结果：Accuracy: 0.5366  
- test GP: 0.7779960707269156 GR: 0.6336 FS: 0.6984126984126984 OE: 0.08130081300813008
+#### BigData
 
-### weibo数据集
+```bash
+python reddit.py \
+  --cv_heads 8 \
+  --cv_d_model 256 \
+  --lr 1e-4 \
+  --batch_size 4 \
+  --max_len 5 \
+  --hidden_size 128 \
+  --epochs 50 \
+  --patience 10 \
+  --classnum 4 \
+  --data_embeddings ../data/bigdata_bert_embeddings.pkl \
+  --data_features ../data_analy/feature_bigdata.csv \
+  --save_path ./model/my_bigdata_model.pth
+```
 
-weibo中文数据集：
-特征维度：(7327, 130)
+#### Weibo
 
-- POS: 57
-- TF-IDF: 50
-- NRC: 10
-- SUI: 13
-  train.py
-  总体指标:
-  Accuracy: 0.8499
-  F1-Score: 0.8499
-  Precision: 0.8499
-  Recall: 0.8499
+```bash
+python weibo_train.py
+```
 
-## 指标汇总
+The saved checkpoints are:
 
-| 数据集  | 任务（classnum） | Accuracy |                 GP |                 GR |             FS(F1) |                  OE |
-| ------- | ---------------: | -------: | -----------------: | -----------------: | -----------------: | ------------------: |
-| reddit  |                5 |   0.6400 | 0.7804878048780488 | 0.7804878048780488 | 0.7804878048780488 |                 0.1 |
-| bigdata |                4 |   0.5366 | 0.7779960707269156 |             0.6336 | 0.6984126984126984 | 0.08130081300813008 |
-| sigir   |                2 |   0.9489 | 0.9766081871345029 | 0.9709302325581395 | 0.9737609329446064 |                 0.0 |
+```text
+auto_select/model/my_reddit_model.pth
+auto_select/model/my_sigir_model.pth
+auto_select/model/my_bigdata_model.pth
+auto_select/model/my_weibo_model.pth
+```
 
----
+## Loss Function Setting
 
-## 消融实验
+All datasets use the same FeaLearner 2.0 architecture. Dataset-specific settings include the number of classes, feature dimensionality, sequence length, tuned hyperparameters, and loss function.
 
-运行脚本：`ablation_study.py`  
-输出结果：`ablation_results.csv`
+- Reddit, SIGIR, and BigData are trained by `reddit.py`.
+- Weibo is trained by `weibo_train.py`.
+- Weibo uses Cross-Entropy Loss.
+- The other datasets use Focal Loss in the current reproduction code.
 
-| 实验             |                     描述 | Accuracy |     F1 |     GP |     GR |
-| ---------------- | -----------------------: | -------: | -----: | -----: | -----: |
-| Exp-0_Full       |                 Baseline |     0.64 | 0.7805 | 0.7805 | 0.7805 |
-| Exp-1_no_Temp    |        w/o Temporal Attn |     0.34 | 0.5075 | 0.5313 | 0.4857 |
-| Exp-2_no_Cross   |       w/o Cross-Var Attn |     0.46 | 0.6301 | 0.6389 | 0.6216 |
-| Exp-3_no_Dual    |             w/o All Attn |     0.46 | 0.6301 | 0.6765 | 0.5897 |
-| Exp-4_Fixed      |                  α=β=1.0 |     0.48 | 0.6486 | 0.6857 | 0.6154 |
-| Exp-5_MLP        |               MoE -> MLP |     0.50 | 0.6667 | 0.7576 | 0.5952 |
-| Exp-6_1Layer_MoE |   2-Layer -> 1-Layer MoE |     0.42 | 0.5915 | 0.7000 | 0.5122 |
-| Exp-7_UniLSTM    |          Bi- -> Uni-LSTM |     0.48 | 0.6486 | 0.7273 | 0.5854 |
-| Exp-8_no_Feat    | w/o Handcrafted Features |     0.42 | 0.5915 | 0.6176 | 0.5676 |
-| Exp-9_CE_Loss    |         Focal -> CE Loss |     0.46 | 0.6301 | 0.7931 | 0.5227 |
+## Hyperparameter Search
+
+For Reddit, SIGIR, and BigData:
+
+```bash
+cd auto_select
+bash run_experiments.sh
+```
+
+For Weibo:
+
+```bash
+cd auto_select
+bash weibo_tune.sh
+```
+
+Recorded search results are stored under:
+
+```text
+auto_select/result/reddit/
+auto_select/result/sigir/
+auto_select/result/bigdata/
+auto_select/result/weibo/
+```
+
+## Ablation Studies
+
+Only Reddit and Weibo ablation studies are included.
+
+### Reddit Ablation
+
+```bash
+cd auto_select
+python reddit_ablation.py
+```
+
+Output:
+
+```text
+auto_select/ablation_results.csv
+auto_select/ablation/*.pth
+```
+
+### Weibo Ablation
+
+```bash
+cd auto_select
+python weibo_ablation.py
+```
+
+Output:
+
+```text
+auto_select/weibo_ablation_results.csv
+auto_select/ablation_weibo/*.pth
+```
+
+## Recorded Results
+
+The main recorded results are located in:
+
+```text
+auto_select/result/reddit/reddit.csv
+auto_select/result/sigir/results_stage1_structure.csv
+auto_select/result/bigdata/bigdata.csv
+auto_select/result/weibo/weibo.csv
+```
+
+The ablation result files are:
+
+```text
+auto_select/ablation_results.csv
+auto_select/weibo_ablation_results.csv
+```
+
+These files should be used together with the saved checkpoints in `auto_select/model/` to reproduce the reported experiments.
